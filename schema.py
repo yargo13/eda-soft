@@ -11,7 +11,7 @@ class Query(graphene.ObjectType):
     students = graphene.List(Student)
 
     def resolve_students(self, info):
-        query = Todo.get_query(info)
+        query = Student.get_query(info)
         return query.all()
 
 schema = graphene.Schema(query=Query)

@@ -5,6 +5,7 @@ from datetime import date
 def init_db():
     Base.metadata.drop_all(bind = engine)
     Base.metadata.create_all(bind = engine)
+    db_session.commit()
 
     system_admin = Role(description = 'system_admin')
     school_admin = Role(description = 'school_admin')
