@@ -9,101 +9,96 @@ from models import Teacher as TeacherModel
 from models import Parent as ParentModel
 from models import Student as StudentModel
 from models import Questionnaire as QuestionnaireModel
-from models import Questionnaire_Answer as Questionnaire_AnswerModel
+from models import Questionnaire_Response as Questionnaire_ResponseModel
 from models import Question as QuestionModel
-from models import Question_Answer as Question_AnswerModel
+from models import Question_Response as Question_ResponseModel
 from database import db_session
+from datetime import date
 
-class Todo(SQLAlchemyObjectType):
+class Classroom(SQLAlchemyObjectType):
     class Meta:
-        model = TodoModel
+        model = ClassroomModel
 
-class Person(SQLAlchemyObjectType):
+class School(SQLAlchemyObjectType):
     class Meta:
-        model = PersonModel
+        model = SchoolModel
 
-# Create a Todo
-class createTodo(graphene.Mutation):
+class User(SQLAlchemyObjectType):
+    class Meta:
+        model = UserModel
 
-    class Arguments:
-        item = graphene.String()
-        person = graphene.String()
-    ok = graphene.Boolean()
-    todo = graphene.Field(Todo)
+class Role(SQLAlchemyObjectType):
+    class Meta:
+        model = RoleModel
 
-    def mutate(self, info, **args):
-        item = args.get('item')
-        person = args.get('person')
-        person_query = PersonModel.query.filter(PersonModel.name==person).first()
-        if person_query is None:
-            return createTodo(todo = None, ok = False)
-        else:
-            person_id = person_query.id
-            todo = TodoModel(item=item,person_id=person_id)
-            db_session.add(todo)
-            db_session.commit()
-            return createTodo(todo = todo, ok = True)
+class School_Admin(SQLAlchemyObjectType):
+    class Meta:
+        model = School_AdminModel
 
-# Delete one Todo by its item
-class deleteTodo(graphene.Mutation):
-    class Arguments:
-        item = graphene.String()
-    ok = graphene.Boolean()
+class Teacher(SQLAlchemyObjectType):
+    class Meta:
+        model = TeacherModel
 
-    def mutate(self, info, **args):
-        item = args.get('item')
-        item_query = TodoModel.query.filter(TodoModel.item == item).first()
-        if item_query is None:
-            return deleteTodo(ok = False)
-        else:
-            db_session.delete(item_query)
-            db_session.commit()
-            return createTodo(ok = True)
+class Parent(SQLAlchemyObjectType):
+    class Meta:
+        model = ParentModel
 
-# Update de person doing a Todo
-class updateTodo(graphene.Mutation):
-    class Arguments:
-        item = graphene.String()
-        person = graphene.String()
-    ok = graphene.Boolean()
-    todo = graphene.Field(Todo)
+class Student(SQLAlchemyObjectType):
+    class Meta:
+        model = StudentModel
 
-    def mutate(self, info, **args):
-        item = args.get('item')
-        person = args.get('person')
-        item_query = TodoModel.query.filter(TodoModel.item == item).first()
-        if item_query is None:
-            return updateTodo(todo = None, ok = false)
-        else:
-            person_query = PersonModel.query.filter(PersonModel.name==person).first()       
-            if person_query is None:
-                return updateTodo(todo = None, ok = False)
-            else:
-                person_id = person_query.id
-                item_query.person_id = person_id
-                db_session.commit()
-                return updateTodo(todo = item_query, ok = True)
+class Questionnaire(SQLAlchemyObjectType):
+    class Meta:
+        model = QuestionnaireModel
+
+class Questionnaire_Response(SQLAlchemyObjectType):
+    class Meta:
+        model = Questionnaire_ResponseModel
+
+class Question(SQLAlchemyObjectType):
+    class Meta:
+        model = QuestionModel
+
+class Question_Response(SQLAlchemyObjectType):
+    class Meta:
+        model = Question_ResponseModel
 
 class Query(graphene.ObjectType):
     # Get a list of all chores
-    all_todos = graphene.List(Todo)
-    def resolve_all_todos(self, info, **args):
-        query = Todo.get_query(info)
-        return query.all()
-    
-    # Get chores separated by person and can search for a specific one
-    get_chores = graphene.List(Person, person=graphene.String())
-    def resolve_get_chores(self, info, **args):
-        query = Person.get_query(info)
-        person = args.get('person')
-        if person is not None:
-            return query.filter(PersonModel.name == person).all()
+    get_questionnaires = graphene.List(Questionnaire, student_number=graphene.String())
+    def resolve_get_questionnaires(self, info, **args):
+        query = Questionnaire.get_query(info)
+        student_number = args.get('student_number')
+        if student_number is not None:
+            student = StudentModel.query.filter(StudentModel.student_number == student_number).first()
+            student_age = ((date.today() - student.birth_date).days)/365
+            return query.filter(QuestionnaireModel.mininum_age <= student_age, QuestionnaireModel.maximum_age >= student_age).all()
         else:
-            return query.all()
+            return None
+
+class respondQuestionnaire(graphene.Mutation):
+    class Arguments:
+        student_number = graphene.String()
+        responses = graphene.JSONString()
+    ok = graphene.Boolean()
+    def mutate(self, info, **args):
+        student_number = args.get('student_number')
+        student = StudentModel.query.filter(StudentModel.student_number == student_number).first()
+        if student is not None:
+            responses = args.get('responses')
+            print(responses)
+            questionnaire_response = Questionnaire_ResponseModel(student_id = student.id)
+            db_session.add(questionnaire_response)
+            db_session.commit()
+            for question_id in responses:
+                question = QuestionModel.query.filter(QuestionModel.id == question_id).first()
+                question_response = Question_ResponseModel(question_id = question.id, response = responses[question_id])
+                questionnaire_response.responses.append(question_response)
+            db_session.commit()
+            return respondQuestionnaire(ok = True)
 
 class MyMutations(graphene.ObjectType):
-    create_todo = createTodo.Field()
-    delete_todo = deleteTodo.Field()
-    update_todo = updateTodo.Field()
+    respond_questionnaire = respondQuestionnaire.Field()
 
-schema = graphene.Schema(query=Query,mutation=MyMutations)
+
+schema = graphene.Schema(query=Query, mutation=MyMutations )

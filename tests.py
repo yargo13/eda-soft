@@ -54,12 +54,12 @@ def init_db():
     db_session.commit()
     
     question1 = Question(questionnaire_id = questionnaire.id, text = 'A criança olha diretamente na direção de quem fala?')
-    enzo_answer = Questionnaire_Answer(student_id = enzo.id)
+    enzo_answer = Questionnaire_Response(student_id = enzo.id)
     db_session.add(enzo_answer)
     db_session.add(question1)
     db_session.commit()
 
-    question1_anwer = Question_Answer(questionnaire_answer_id = enzo_answer.id, question_id = question1.id, answer = 'y')
+    question1_anwer = Question_Response(questionnaire_response_id = enzo_answer.id, question_id = question1.id, response = 'y')
     db_session.add(question1_anwer)
     db_session.commit()
     

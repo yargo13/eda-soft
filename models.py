@@ -67,6 +67,7 @@ class Student(Base):
     student_number = Column(String(20), nullable = False)
     gender = Column(String(1), nullable = False)
     parents = relationship("Parent", secondary=family)
+    questionnaire_responses = relationship("Questionnaire_Response", backref='student', lazy=True)
 
     def __repr__(self):
         return '<Student %r %r>' % (self.first_name, self.surname)
@@ -76,12 +77,14 @@ class Questionnaire(Base):
     id = Column(Integer, primary_key = True)
     mininum_age = Column(Float)
     maximum_age = Column(Float)
+    questions = relationship('Question', backref='questionnaire', lazy=True)
 
-class Questionnaire_Answer(Base):
-    __tablename__ = 'questionnaire_answer'
+class Questionnaire_Response(Base):
+    __tablename__ = 'questionnaire_response'
     id = Column(Integer, primary_key = True)
     student_id = Column(Integer, ForeignKey('student.id'))
     timestamp = Column(DateTime, default = datetime.now())
+    responses = relationship('Question_Response', backref = 'questionnaire_response', lazy=True)
 
 class Question(Base):
     __tablename__ = 'question'
@@ -89,12 +92,12 @@ class Question(Base):
     questionnaire_id = Column(Integer, ForeignKey('questionnaire.id'))
     text = Column(String(1000), nullable = False)
 
-class Question_Answer(Base):
-    __tablename__ = 'question_answer'
+class Question_Response(Base):
+    __tablename__ = 'question_response'
     id = Column(Integer, primary_key = True)
-    questionnaire_answer_id = Column(Integer, ForeignKey('questionnaire_answer.id'))
+    questionnaire_response_id = Column(Integer, ForeignKey('questionnaire_response.id'))
     question_id = Column(Integer, ForeignKey('question.id'))
-    answer = Column(String(256), nullable = False)
+    response = Column(String(256), nullable = False)
 
 
 
