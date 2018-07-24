@@ -3,8 +3,10 @@ from database import db_session
 from flask_graphql import GraphQLView
 from schema import schema
 import os
+from flask_migrate import Migrate
 
 app = Flask(__name__)
+migrate = Migrate(app, db_session)
 
 @app.teardown_appcontext
 def shutdown_session(exception=None):
