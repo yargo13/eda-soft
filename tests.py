@@ -69,3 +69,7 @@ from requests import put, get, delete
 init_db()
 
 print(Classroom.query.first().students)
+
+print(Teacher.query.first().user)
+
+print(Parent.query.first().user)

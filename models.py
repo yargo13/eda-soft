@@ -25,6 +25,10 @@ class User(Base):
     email = Column(String(128), unique = True, nullable = False)
     password = Column(String(128), nullable = False)
     telephone_number = Column(String(30))
+    questionnaires_submited = relationship('Questionnaire_Response', backref='user', lazy=True)
+
+    def __repr__(self):
+        return '<User %r %r>' % (self.first_name, self.surname)
 
 class Role(Base):
     __tablename__ = 'role'
@@ -42,6 +46,7 @@ class Teacher(Base):
     id = Column(Integer, primary_key = True)
     role_id = Column(Integer, ForeignKey('role.id'), default = 3)
     user_id = Column(Integer, ForeignKey('user.id'), unique = True)
+    user = relationship('User', backref='teacher', lazy = True)
 
 family = Table(
     'family',
@@ -56,6 +61,7 @@ class Parent(Base):
     role_id = Column(Integer, ForeignKey('role.id'), default = 4)
     user_id = Column(Integer, ForeignKey('user.id'), unique = True)
     children = relationship("Student", secondary=family)
+    user = relationship('User', backref='parent', lazy = True)
 
 class Student(Base):
     __tablename__ = 'student'
@@ -83,6 +89,7 @@ class Questionnaire_Response(Base):
     __tablename__ = 'questionnaire_response'
     id = Column(Integer, primary_key = True)
     student_id = Column(Integer, ForeignKey('student.id'))
+    submitter_id = Column(Integer, ForeignKey('user.id'))
     timestamp = Column(DateTime, default = datetime.now())
     responses = relationship('Question_Response', backref = 'questionnaire_response', lazy=True)
 
