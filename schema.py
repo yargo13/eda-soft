@@ -14,6 +14,7 @@ from models import Question as QuestionModel
 from models import Question_Response as Question_ResponseModel
 from database import db_session
 from datetime import date
+import ast
 
 class Classroom(SQLAlchemyObjectType):
     class Meta:
@@ -65,37 +66,103 @@ class Question_Response(SQLAlchemyObjectType):
 
 class Query(graphene.ObjectType):
     # Get a list of all chores
-    get_questionnaires = graphene.List(Questionnaire, student_number=graphene.String())
+    get_questionnaires = graphene.List(Questionnaire, student_id=graphene.String())
     def resolve_get_questionnaires(self, info, **args):
         query = Questionnaire.get_query(info)
-        student_number = args.get('student_number')
-        if student_number is not None:
-            student = StudentModel.query.filter(StudentModel.student_number == student_number).first()
+        student_id = args.get('student_id')
+        student = StudentModel.query.filter(StudentModel.id == student_id).first()
+        if student is not None:
             student_age = ((date.today() - student.birth_date).days)/365
             return query.filter(QuestionnaireModel.mininum_age <= student_age, QuestionnaireModel.maximum_age >= student_age).all()
         else:
             return None
 
+    get_answers = graphene.List(Questionnaire_Response, student_id=graphene.Int())
+    def resolve_get_answers(self, info, **args):
+        query = Questionnaire_Response.get_query(info)
+        student_id = args.get('student_id')
+        student = StudentModel.query.filter(StudentModel.id == student_id).first()
+        if student is not None:
+            return query.filter(Questionnaire_ResponseModel.student == student, Questionnaire_ResponseModel.responses != None).all()
+        else:
+            return None
+
+    get_answers_questionnaire = graphene.List(Questionnaire_Response, student_id=graphene.Int(), questionnaire_id = graphene.Int())
+    def resolve_get_answers_questionnaire(self, info, student_id, questionnaire_id):
+        query = Questionnaire_Response.get_query(info)
+        student = StudentModel.query.filter(StudentModel.id == student_id).first()
+        query = query.join()
+        if student is not None:
+            return query.filter(Questionnaire_ResponseModel.student == student,
+            Questionnaire_ResponseModel.responses != None,
+            Questionnaire_ResponseModel.responses.any(Question_ResponseModel.question.has(QuestionModel.questionnaire_id == questionnaire_id))).all()
+        else:
+            return None
+        
+    get_questionnaire = graphene.Field(Questionnaire, questionnaire_id = graphene.Int())
+    def resolve_get_questionnaire(self, info, **args):
+        query = Questionnaire.get_query(info)
+        questionnaire_id = args.get('questionnaire_id')
+        return query.filter(QuestionnaireModel.id == questionnaire_id).first()
+
+
+    get_parent = graphene.Field(Parent, parent_id = graphene.Int())
+    def resolve_get_parent(self, info, **args):
+        query = Parent.get_query(info)
+        parent_id = args.get('parent_id')
+        return query.filter(ParentModel.id == parent_id).first()
+
+    get_student = graphene.Field(Student, student_id = graphene.Int())
+    def resolve_get_student(self, info, **args):
+        query = Student.get_query(info)
+        student_id = args.get('student_id')
+        return query.filter(StudentModel.id == student_id).first()       
+
+
+    get_children = graphene.List(Student, parent_id = graphene.Int())
+    def resolve_get_children(self, info, **args):
+        query = Student.get_query(info)
+        parent_id = args.get('parent_id')
+        return query.filter(StudentModel.parents.any(ParentModel.id == parent_id)).all()
+
+    
+
 class respondQuestionnaire(graphene.Mutation):
     class Arguments:
-        student_number = graphene.String()
-        responses = graphene.JSONString()
+        student_id = graphene.Int()
+        submitter_id = graphene.Int()
+        questionnaire_id = graphene.Int()
+        responses = graphene.String()
     ok = graphene.Boolean()
     def mutate(self, info, **args):
-        student_number = args.get('student_number')
-        student = StudentModel.query.filter(StudentModel.student_number == student_number).first()
-        if student is not None:
-            responses = args.get('responses')
-            print(responses)
-            questionnaire_response = Questionnaire_ResponseModel(student_id = student.id)
+        student_id = args.get('student_id')
+        submitter_id = args.get('submitter_id')
+        questionnaire_id = args.get('questionnaire_id')
+        student = StudentModel.query.filter(StudentModel.id == student_id).first()
+        questionnaire = QuestionnaireModel.query.filter(QuestionnaireModel.id == questionnaire_id).first()
+        submitter = UserModel.query.filter(UserModel.id == submitter_id).first()
+        if student is not None and questionnaire is not None and submitter is not None:
+            responses_json = args.get('responses')
+            responses = ast.literal_eval(responses_json)
+            questionnaire_response = Questionnaire_ResponseModel(student_id = student.id, submitter_id = submitter.id, questionnaire_id = questionnaire.id)
             db_session.add(questionnaire_response)
             db_session.commit()
+            questionnaire_sum = 0
             for question_id in responses:
                 question = QuestionModel.query.filter(QuestionModel.id == question_id).first()
-                question_response = Question_ResponseModel(question_id = question.id, response = responses[question_id])
+                response = responses[question_id]
+                question_response = Question_ResponseModel(question_id = question.id, response = response)
                 questionnaire_response.responses.append(question_response)
+                questionnaire_sum += int(response)
+            if questionnaire_sum < questionnaire.lower_range:
+                questionnaire_response.result = 'Baixo'
+            elif questionnaire_sum < questionnaire.upper_range:
+                questionnaire_response.result = 'Médio'
+            else:
+                questionnaire_response.result = 'Alto'
             db_session.commit()
             return respondQuestionnaire(ok = True)
+
 
 class MyMutations(graphene.ObjectType):
     respond_questionnaire = respondQuestionnaire.Field()

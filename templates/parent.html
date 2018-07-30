@@ -1,0 +1,10 @@
+<html>
+    <body>
+        <h1> Olá, {{parent["user"]["firstName"]}}</h1>
+        <p>
+            {% for child in parent["children"] %}
+            <a href= "{{ url_for('student', parent_id=parent["id"], student_id=child["id"]) }}">{{child["firstName"]}}</a>
+            {% endfor %}
+        </p>
+    </body>
+</html>

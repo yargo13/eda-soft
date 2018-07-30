@@ -47,6 +47,7 @@ class Teacher(Base):
     role_id = Column(Integer, ForeignKey('role.id'), default = 3)
     user_id = Column(Integer, ForeignKey('user.id'), unique = True)
     user = relationship('User', backref='teacher', lazy = True)
+    classrooms = relationship('Classroom', backref = 'teacher', lazy = True)
 
 family = Table(
     'family',
@@ -72,6 +73,8 @@ class Student(Base):
     classroom_id = Column(Integer, ForeignKey('classroom.id'))
     student_number = Column(String(20), nullable = False)
     gender = Column(String(1), nullable = False)
+    height = Column(Float, nullable = False)
+    weight = Column(Float, nullable = False)
     parents = relationship("Parent", secondary=family)
     questionnaire_responses = relationship("Questionnaire_Response", backref='student', lazy=True)
 
@@ -81,8 +84,11 @@ class Student(Base):
 class Questionnaire(Base):
     __tablename__ = 'questionnaire'
     id = Column(Integer, primary_key = True)
-    mininum_age = Column(Float)
-    maximum_age = Column(Float)
+    mininum_age = Column(Float, nullable = False)
+    maximum_age = Column(Float, nullable = False)
+    name = Column(String(256))
+    lower_range = Column(Float, nullable = False)
+    upper_range = Column(Float, nullable = False)
     questions = relationship('Question', backref='questionnaire', lazy=True)
 
 class Questionnaire_Response(Base):
@@ -90,7 +96,11 @@ class Questionnaire_Response(Base):
     id = Column(Integer, primary_key = True)
     student_id = Column(Integer, ForeignKey('student.id'))
     submitter_id = Column(Integer, ForeignKey('user.id'))
+    submitter = relationship('User', backref = 'questionnaire_response', lazy = True)
     timestamp = Column(DateTime, default = datetime.now())
+    questionnaire_id = Column(Integer, ForeignKey('questionnaire.id'))
+    questionnaire = relationship('Questionnaire', backref='questionnaire_response', lazy = True)
+    result = Column(String(30))
     responses = relationship('Question_Response', backref = 'questionnaire_response', lazy=True)
 
 class Question(Base):
@@ -104,6 +114,7 @@ class Question_Response(Base):
     id = Column(Integer, primary_key = True)
     questionnaire_response_id = Column(Integer, ForeignKey('questionnaire_response.id'))
     question_id = Column(Integer, ForeignKey('question.id'))
+    question = relationship('Question', backref = 'question_response')
     response = Column(String(256), nullable = False)
 
 

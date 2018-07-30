@@ -1,0 +1,32 @@
+<html>
+    <body>
+        <h1> Diário de {{student["firstName"] + " " + student["surname"]}}</h1>
+        <p>
+            Número de matrícula: {{student["studentNumber"]}} <br>
+            Data de Nascimento: {{student["birthDate"]}}
+        </p>
+        <p>
+            Questionários Disponíveis:
+        </p>
+        <div>
+            {% for i in range(0, questionnaires|length) %}
+                <a href="{{ url_for('student_questionnaire', student_id=student["id"], questionnaire_id=questionnaires[i]["id"], parent_id=parent_id)}}"> {{ questionnaires[i].name}} </a> <br>
+            {% endfor %}
+        </div>
+
+        {% if not student["questionnaireResponses"] %}
+            <div> 
+                <p>Nenhum questionário preenchido</p>
+            </div>
+        {% else %}
+            <p>
+                Respostas Anteriores:
+            </p>
+            <div>
+                {% for id in student["questionnairesAnswered"].keys() %}
+                    <a href="{{ url_for('student_answers', student_id=student["id"], questionnaire_id=id,parent_id=parent_id) }}"> {{student["questionnairesAnswered"][id]}} </a> <br>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </body>
+</html>

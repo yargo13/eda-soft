@@ -1,0 +1,12 @@
+<html>
+    <body>
+        <h1> Respostas para {{questionnaire["name"]}}</h1>
+        <div>
+            {% for answer in answers %}
+                <div>
+                    {{answer["result"]}} - {{answer["timestamp"]}} : enviado por {{answer["submitter"]["firstName"]}} {{answer["submitter"]["surname"]}}
+                </div>
+            {% endfor %}
+        </div>
+    </body>
+</html>

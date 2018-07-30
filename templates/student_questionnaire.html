@@ -1,0 +1,19 @@
+<html>
+    <body>
+        <h1>
+            {{questionnaire["name"]}}
+        </h1>
+        <form action="" method = "POST">
+            <div>
+                {% for question in questionnaire["questions"] %}
+                <p> {{question["text"]}} </p>
+                <input type="radio" name = "{{question["id"]}}" value="0"> Não <br>
+                <input type="radio" name = "{{question["id"]}}" value="5"> Às vezes <br>
+                <input type="radio" name = "{{question["id"]}}" value="10"> Sim <br>
+                {% endfor %}
+                <input type="submit" value = "Enviar"> <br>
+            </div>
+           
+        </form>
+    </body>
+</html>
